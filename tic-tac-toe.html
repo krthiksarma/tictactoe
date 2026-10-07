@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tic Tac Toe</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;800&display=swap">
+<style>
+:root{--bg:#e8eef5;--ink:#1d2b53;--x:#2347d9;--o:#e8553d;--line:#1d2b53;--card:#f6f9fc;--mute:#5d6b8a;--win:#ffe28a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10162b;--ink:#e6ebff;--x:#7d95ff;--o:#ff8a73;--line:#e6ebff;--card:#192142;--mute:#9aa6cf;--win:#5a4b12}}
+:root[data-theme="dark"]{--bg:#10162b;--ink:#e6ebff;--x:#7d95ff;--o:#ff8a73;--line:#e6ebff;--card:#192142;--mute:#9aa6cf;--win:#5a4b12}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Bricolage Grotesque",system-ui,sans-serif;display:flex;justify-content:center;align-items:center;padding:20px}
+main{width:100%;max-width:420px;text-align:center}
+h1{font-size:2rem;font-weight:800;margin:0 0 4px;letter-spacing:-.02em}
+#status{min-height:1.6em;font-size:1.15rem;margin:0 0 16px;color:var(--mute)}
+#board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--line);padding:8px;border-radius:14px;aspect-ratio:1}
+.cell{background:var(--card);border:0;border-radius:8px;font:800 clamp(3rem,16vw,4.6rem)/1 inherit;font-family:inherit;cursor:pointer;color:var(--ink);padding:0}
+.cell:focus-visible,button:focus-visible{outline:3px solid var(--o);outline-offset:2px}
+.cell.x{color:var(--x)}.cell.o{color:var(--o)}
+.cell.win{background:var(--win)}
+.cell:not(:disabled):hover{filter:brightness(.96)}
+.cell:disabled{cursor:default}
+.mark{display:inline-block;animation:pop .15s ease-out}
+@keyframes pop{from{transform:scale(.5)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.mark{animation:none}}
+.row{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+button.ctl{font:500 .95rem inherit;font-family:inherit;padding:9px 16px;border-radius:999px;border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+button.ctl[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.score{display:flex;justify-content:space-between;margin-top:18px;font-size:1rem}
+.score b{font-size:1.5rem;display:block}
+.score .sx b{color:var(--x)}.score .so b{color:var(--o)}
+</style>
+</head>
+<body>
+<main>
+<h1>Tic Tac Toe</h1>
+<p id="status" aria-live="polite"></p>
+<div id="board" role="grid" aria-label="Game board"></div>
+<div class="score">
+<div class="sx"><b id="sx">0</b>X wins</div>
+<div><b id="sd">0</b>Draws</div>
+<div class="so"><b id="so">0</b><span id="olabel">O wins</span></div>
+</div>
+<div class="row">
+<button class="ctl" id="m1" aria-pressed="true">vs Computer</button>
+<button class="ctl" id="m2" aria-pressed="false">2 Players</button>
+<button class="ctl" id="reset">New game</button>
+</div>
+</main>
+<script>
+const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let b,turn,over,solo=true,sc={X:0,O:0,D:0};
+const boardEl=document.getElementById('board'),st=document.getElementById('status');
+const cells=[...Array(9)].map((_,i)=>{const c=document.createElement('button');c.className='cell';c.setAttribute('aria-label','Cell '+(i+1));c.onclick=()=>play(i);boardEl.appendChild(c);return c});
+function winner(s){for(const l of l_(s))return l;return null}
+function l_(s){return L.filter(([a,b,c])=>s[a]&&s[a]===s[b]&&s[a]===s[c])}
+function mm(s,p){const w=l_(s)[0];if(w)return{v:s[w[0]]==='O'?1:-1};if(s.every(Boolean))return{v:0};
+let best={v:p==='O'?-2:2};
+for(let i=0;i<9;i++)if(!s[i]){s[i]=p;const r=mm(s,p==='O'?'X':'O');s[i]=null;
+if(p==='O'?r.v>best.v:r.v<best.v)best={v:r.v,m:i}}
+return best}
+function render(win){cells.forEach((c,i)=>{c.innerHTML=b[i]?'<span class="mark">'+b[i]+'</span>':'';c.className='cell'+(b[i]?' '+b[i].toLowerCase():'')+(win&&win.includes(i)?' win':'');c.disabled=over||!!b[i]})}
+function msg(){st.textContent=over?st.textContent:(solo&&turn==='O'?'Computer is thinking…':'Player '+turn+'’s turn')}
+function play(i){if(over||b[i])return;b[i]=turn;const w=l_(b)[0];
+if(w){over=true;sc[turn]++;st.textContent=(solo?(turn==='X'?'You win!':'Computer wins'):'Player '+turn+' wins!');render(w);upd();return}
+if(b.every(Boolean)){over=true;sc.D++;st.textContent='It’s a draw';render();upd();return}
+turn=turn==='X'?'O':'X';render();msg();
+if(solo&&turn==='O'){boardEl.style.pointerEvents='none';setTimeout(()=>{boardEl.style.pointerEvents='';if(!over)play(mm(b.slice(),'O').m)},450)}}
+function upd(){sx.textContent=sc.X;so.textContent=sc.O;sd.textContent=sc.D}
+function start(){b=Array(9).fill(null);turn='X';over=false;render();msg()}
+function mode(s){solo=s;m1.setAttribute('aria-pressed',s);m2.setAttribute('aria-pressed',!s);olabel.textContent=s?'Computer wins':'O wins';sc={X:0,O:0,D:0};upd();start()}
+m1.onclick=()=>mode(true);m2.onclick=()=>mode(false);reset.onclick=start;
+mode(true);
+</script>
+</body>
+</html>
